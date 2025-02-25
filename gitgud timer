@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Timer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Lato', Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+        }
+        #timer { font-size: 48px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 5px; }
+        #setupForm, #timerSection { display: none; }
+        #setupForm.active, #timerSection.active { display: block; }
+        input, select { margin: 10px; padding: 5px; width: 200px; }
+        .about { font-size: 16px; color: #333; max-width: 400px; margin: 10px auto; }
+        .tutorial { font-size: 14px; color: #555; max-width: 400px; margin: 10px auto; cursor: pointer; }
+        .tutorial-content { display: none; }
+        .tutorial-content.active { display: block; }
+        .credits { font-size: 12px; color: #777; max-width: 400px; margin: 10px auto; }
+        .credits a { color: #1DA1F2; text-decoration: none; }
+        .credits a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>GitGud Timer</h1>
+
+    <!-- Setup Form -->
+    <div id="setupForm" class="active">
+        <h2>Connect Your GitHub</h2>
+        <p class="about">Time your tasks, commit progress to GitHub, and level up your productivity.</p>
+        <p>Enter your details below. Nothing is saved after you close this page.</p>
+        <input type="text" id="githubToken" placeholder="GitHub Personal Access Token"><br>
+        <input type="text" id="githubUsername" placeholder="GitHub Username"><br>
+        <input type="text" id="repoName" placeholder="Repository Name"><br>
+        <input type="text" id="filePath" placeholder="File Path (e.g., progress.txt)"><br>
+        <input type="text" id="sessionLabel" placeholder="Session Label (e.g., Work, Study)"><br>
+        <button id="connectBtn">Connect</button>
+        <p class="tutorial">
+            <strong>How to get your GitHub Personal Access Token</strong>
+            <div class="tutorial-content">
+                <br>
+                1. On GitHub, click your profile picture > Settings > Developer settings > Personal access tokens > Tokens (classic).<br>
+                2. Click "Generate new token," name it (e.g., "TimerApp"), check "repo," and copy the token (starts with "ghp_").<br>
+                3. Store it securely. <em>Security tip:</em> Set an expiry date (e.g., 1 day or 30 days) to reduce risk if compromised.
+            </div>
+        </p>
+        <p class="credits">
+            This browser-based application is brought to you by Automasi.AI, created using Grok 3 to explore its capabilities. Follow me on X at <a href="https://x.com/bettercallshaz" target="_blank">@bettercallshaz</a>!
+        </p>
+        <p class="credits">
+            If you have any questions about GitGud Timer, or you are looking to solve workflow backlogs, minimize human errors and free up resources with cost effective AI Automation, you can DM on my X at <a href="https://x.com/bettercallshaz" target="_blank">@bettercallshaz</a> or email me at harrith@automasi.ai
+        </p>
+    </div>
+
+    <!-- Timer Section -->
+    <div id="timerSection">
+        <div id="timer">25:00</div>
+        <select id="durationSelect">
+            <option value="5">5 Minutes</option>
+            <option value="15">15 Minutes</option>
+            <option value="25" selected>25 Minutes</option>
+        </select><br>
+        <button id="startBtn">Start Timer</button>
+        <button id="resetBtn">Reset Timer</button>
+    </div>
+
+    <script>
+        const setupForm = document.getElementById('setupForm');
+        const timerSection = document.getElementById('timerSection');
+        const connectBtn = document.getElementById('connectBtn');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const timerDisplay = document.getElementById('timer');
+        const durationSelect = document.getElementById('durationSelect');
+        const tutorial = document.querySelector('.tutorial');
+        const tutorialContent = document.querySelector('.tutorial-content');
+        let timeLeft = 25 * 60; // Default to 25 minutes in seconds
+        let timerId = null;
+        let githubConfig = {};
+
+        // Toggle tutorial visibility on click
+        tutorial.addEventListener('click', () => {
+            tutorialContent.classList.toggle('active');
+        });
+
+        connectBtn.addEventListener('click', () => {
+            githubConfig.token = document.getElementById('githubToken').value.trim();
+            githubConfig.owner = document.getElementById('githubUsername').value.trim();
+            githubConfig.repo = document.getElementById('repoName').value.trim();
+            githubConfig.filePath = document.getElementById('filePath').value.trim();
+            githubConfig.sessionLabel = document.getElementById('sessionLabel').value.trim() || 'Productivity';
+
+            if (githubConfig.token && githubConfig.owner && githubConfig.repo && githubConfig.filePath) {
+                setupForm.classList.remove('active');
+                timerSection.classList.add('active');
+                document.getElementById('githubToken').value = '';
+                document.getElementById('githubUsername').value = '';
+                document.getElementById('repoName').value = '';
+                document.getElementById('filePath').value = '';
+                document.getElementById('sessionLabel').value = '';
+            } else {
+                alert('Please fill in all required fields (Session Label is optional).');
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            if (!timerId) {
+                timeLeft = parseInt(durationSelect.value) * 60;
+                timerDisplay.textContent = `${durationSelect.value}:00`;
+                startTimer();
+                startBtn.textContent = 'Running...';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            clearInterval(timerId);
+            timerId = null;
+            timeLeft = parseInt(durationSelect.value) * 60;
+            timerDisplay.textContent = `${durationSelect.value}:00`;
+            startBtn.textContent = 'Start Timer';
+        });
+
+        function startTimer() {
+            timerId = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    timerId = null;
+                    tutorialContent.classList.remove('active');
+                    timerDisplay.textContent = 'Done!';
+                    startBtn.textContent = 'Start Timer';
+                    playBeepSequence();
+                    timeLeft = parseInt(durationSelect.value) * 60;
+                    commitToGitHub();
+                }
+            }, 1000);
+        }
+
+        function playBeepSequence() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let time = audioCtx.currentTime;
+            for (let i = 0; i < 3; i++) {
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, time);
+                oscillator.connect(audioCtx.destination);
+                oscillator.start(time);
+                oscillator.stop(time + 0.1);
+                time += 0.3;
+            }
+        }
+
+        async function commitToGitHub() {
+            const now = new Date().toISOString().split('T')[0];
+            const commitMessage = `${githubConfig.sessionLabel} session completed on ${now}`;
+            const content = `${now} - Timer completed (${durationSelect.value} min)\n`;
+
+            try {
+                const getFileUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.filePath}`;
+                const response = await fetch(getFileUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                });
+
+                let sha;
+                let existingContent = '';
+                if (response.ok) {
+                    const fileData = await response.json();
+                    sha = fileData.sha;
+                    existingContent = atob(fileData.content);
+                } else if (response.status === 404) {
+                    existingContent = '';
+                } else {
+                    throw new Error('Failed to check file existence');
+                }
+
+                const newContent = existingContent + content;
+                const encodedContent = btoa(newContent);
+
+                const updateUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.filePath}`;
+                const updateResponse = await fetch(updateUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github+json'
+                    },
+                    body: JSON.stringify({
+                        message: commitMessage,
+                        content: encodedContent,
+                        sha: sha
+                    })
+                });
+
+                if (updateResponse.ok) {
+                    alert('Committed to GitHub successfully!');
+                } else {
+                    alert('Failed to commit. Check console for details.');
+                    console.error(await updateResponse.json());
+                }
+            } catch (error) {
+                console.error('Error committing to GitHub:', error);
+                alert('Something went wrong. Check console.');
+            }
+        }
+    </script>
+</body>
+</html>
